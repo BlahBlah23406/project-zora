@@ -1,0 +1,89 @@
+{
+  "projects": [
+    {
+      "id": "ap-physics-prep",
+      "steps": [
+        "Audit all remaining topics against AP curriculum — mark gaps",
+        "Complete one full practice exam under timed conditions",
+        "Review every missed question — identify pattern by topic",
+        "Targeted review sessions for two weakest topic areas",
+        "Final light review 2 days before exam — no new material"
+      ],
+      "current_step": 1,
+      "deadline": "2026-05-04",
+      "priority_rank": 1,
+      "ai_notes": "Highest priority due to hard exam deadline May 4. Currently on step 2 (practice exam). Must not be crowded out by other work in April.",
+      "folder": "active",
+      "status": "active",
+      "days_since_worked": 1
+    },
+    {
+      "id": "college-apps",
+      "steps": [
+        "Finalize Common App additional info essay",
+        "Submit supplemental essays for all schools",
+        "Confirm all recommendation letters are sent",
+        "Complete financial aid forms (FAFSA + CSS)",
+        "Final submission review and submit"
+      ],
+      "current_step": 0,
+      "deadline": "2026-04-30",
+      "priority_rank": 2,
+      "ai_notes": "Hard deadline April 30. Step 1 (essay finalization) is the current blocker — everything else depends on it. Email advisor task is linked to this project.",
+      "folder": "active",
+      "status": "active",
+      "days_since_worked": 1
+    },
+    {
+      "id": "portfolio-website",
+      "steps": [
+        "Define site structure and page list",
+        "Choose and set up tech stack (Next.js or SvelteKit)",
+        "Build homepage and about section",
+        "Add projects gallery with case studies",
+        "Deploy to Vercel with custom domain"
+      ],
+      "current_step": 1,
+      "deadline": null,
+      "priority_rank": 3,
+      "ai_notes": "No hard deadline but needed before college decisions. Currently in setup phase. Work on this in afternoon blocks when low-stakes creativity is fine.",
+      "folder": "active",
+      "status": "active",
+      "days_since_worked": 1
+    },
+    {
+      "id": "japanese-immersion",
+      "steps": [
+        "Complete genki chapter 15 grammar exercises",
+        "Watch 3 episodes of target show with JP subtitles — note 10 unknown words",
+        "Shadow 5 minutes of native audio daily for one week",
+        "Write one diary entry in Japanese — 150 words",
+        "Have one 10-minute conversation with tutor or language partner"
+      ],
+      "current_step": 2,
+      "deadline": null,
+      "priority_rank": 4,
+      "ai_notes": "Long-term consistency project. Currently on shadowing phase. Pairs naturally with Japanese club on Fridays. Best done in small daily chunks, not marathon sessions.",
+      "folder": "active",
+      "status": "active",
+      "days_since_worked": 1
+    },
+    {
+      "id": "cs-side-project",
+      "steps": [
+        "Define scope: what problem does this solve?",
+        "Set up repo and basic project skeleton",
+        "Build core feature — MVP only",
+        "Write README and record a 2-min demo",
+        "Share on GitHub and LinkedIn"
+      ],
+      "current_step": 0,
+      "deadline": null,
+      "priority_rank": 5,
+      "ai_notes": "Lower priority right now — start after AP exam is done. Good for portfolio and college supplementals. Scope TBD.",
+      "folder": "active",
+      "status": "active",
+      "days_since_worked": 1
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+node_modules/
+.env
+.tokens.json
+context/memory_log.json
+context/whiteboard_cache.json

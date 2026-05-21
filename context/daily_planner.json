@@ -1,0 +1,89 @@
+{
+  "lastPlan": null,
+  "lastPlanAt": null,
+  "taskLogs": {},
+  "lastUpdated": "2026-04-17T04:46:30.869Z",
+  "date": "2026-04-16",
+  "blocks": {
+    "morning": [
+      {
+        "id": "school-day",
+        "note": "Regular school day, start before-school time.",
+        "start_time": null,
+        "end_time": null
+      },
+      {
+        "id": "morning-working-block",
+        "note": "Start of workday, good for focused work before school.",
+        "start_time": null,
+        "end_time": null
+      }
+    ],
+    "afternoon": [
+      {
+        "id": "submit-essay-afternoon",
+        "note": "Post-school activities, submit essay.",
+        "start_time": null,
+        "end_time": null
+      },
+      {
+        "id": "japanese-immersion",
+        "note": "Japanese club on Fridays, good for long-term consistency project.",
+        "start_time": null,
+        "end_time": null
+      }
+    ],
+    "evening": [
+      {
+        "id": "update-portfolio-evening",
+        "note": "Evening working block, low-stakes creativity is fine.",
+        "start_time": null,
+        "end_time": null
+      },
+      {
+        "id": "workout",
+        "note": "Workout block, good for physical health.",
+        "start_time": null,
+        "end_time": null
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "school-day",
+      "note": "Regular school day. Morning block is before-school time, afternoon is during school.",
+      "start_time": null,
+      "end_time": null
+    },
+    {
+      "id": "morning-working-block",
+      "note": "Morning working block. Good for focused work before school.",
+      "start_time": null,
+      "end_time": null
+    },
+    {
+      "id": "afternoon-working-block",
+      "note": "Afternoon working block. Good for focused work after school.",
+      "start_time": null,
+      "end_time": null
+    },
+    {
+      "id": "evening-working-block",
+      "note": "Evening working block. Good for focused work after school.",
+      "start_time": null,
+      "end_time": null
+    },
+    {
+      "id": "workout",
+      "note": "Workout block. Good for physical health.",
+      "start_time": null,
+      "end_time": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "clean-desk",
+      "note": "Clear and organize physical desk, file loose papers, restock supplies"
+    }
+  ]
+}

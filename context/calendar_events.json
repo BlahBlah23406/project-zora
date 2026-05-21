@@ -1,0 +1,67 @@
+{
+  "events": [
+    {
+      "id": "school-day",
+      "date": null,
+      "recurring": "MON-FRI",
+      "time_slot": null,
+      "ai_notes": "Regular school day. Morning block is before-school time, afternoon is during school.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "study-group-wed",
+      "date": null,
+      "recurring": "WEEKLY:WED",
+      "time_slot": null,
+      "ai_notes": "Wednesday evening study group. Good for collaborative review sessions.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "morning-working-block",
+      "date": null,
+      "recurring": "MON-FRI",
+      "time_slot": null,
+      "ai_notes": "Morning working block. Good for focused work before school.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "afternoon-working-block",
+      "date": null,
+      "recurring": "MON-FRI",
+      "time_slot": null,
+      "ai_notes": "Afternoon working block. Good for focused work after school.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "evening-working-block",
+      "date": null,
+      "recurring": "MON-FRI",
+      "time_slot": null,
+      "ai_notes": "Evening working block. Good for focused work after school.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "workout",
+      "date": null,
+      "recurring": "MON-FRI",
+      "time_slot": null,
+      "ai_notes": "Workout block. Good for physical health.",
+      "completed": false,
+      "exceptions": []
+    },
+    {
+      "id": "japanese-club",
+      "date": null,
+      "recurring": "WEEKLY:FRI",
+      "time_slot": null,
+      "ai_notes": "Friday Japanese club meeting. Good opportunity to practice conversation.",
+      "completed": false,
+      "exceptions": []
+    }
+  ]
+}

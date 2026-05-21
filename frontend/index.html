@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starfleet Command</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <canvas id="starfield"></canvas>
+
+  <div id="app">
+
+    <!-- ══ AUTH SCREEN ══ -->
+    <div id="auth-screen" class="fullscreen-state hidden">
+      <div class="auth-card">
+        <svg class="delta-lg" viewBox="0 0 44 54" fill="none">
+          <path d="M22 2L42 52L22 40L2 52Z" fill="#1a3a8a" stroke="#3a60d0" stroke-width="1.2" />
+          <path d="M22 2L2 52L10 47L22 14Z" fill="#2a50b0" opacity="0.45" />
+        </svg>
+        <h2>Starfleet Command</h2>
+        <p>Connect your Google account to access Calendar, Tasks, and Mission Data.</p>
+        <a href="/auth" class="btn-connect">Connect Google Account</a>
+      </div>
+    </div>
+
+    <!-- ══ LOADING SCREEN ══ -->
+    <div id="loading-screen" class="fullscreen-state hidden">
+      <div class="loading-gif-bg">
+        <img class="gif-layer" id="gif-layer-a" src="" alt="" />
+        <img class="gif-layer" id="gif-layer-b" src="" alt="" />
+      </div>
+      <div class="loading-bg-overlay"></div>
+      <div class="loading-inner">
+        <svg class="delta-lg loading-delta" viewBox="0 0 44 54" fill="none">
+          <path d="M22 2L42 52L22 40L2 52Z" fill="#1a3a8a" stroke="#3a60d0" stroke-width="1.2" />
+          <path d="M22 2L2 52L10 47L22 14Z" fill="#2a50b0" opacity="0.45" />
+        </svg>
+        <p class="loading-text" id="loading-text">Loading…</p>
+        <div class="loading-quote-wrap">
+          <p class="loading-quote-text" id="loading-quote-text"></p>
+          <p class="loading-quote-source" id="loading-quote-source"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MAIN VIEW ══ -->
+    <div id="view-main" class="view hidden">
+
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <svg class="delta-sm" viewBox="0 0 44 54" fill="none">
+            <path d="M22 2L42 52L22 40L2 52Z" fill="#1a3a8a" stroke="#3a60d0" stroke-width="1.2" />
+            <path d="M22 2L2 52L10 47L22 14Z" fill="#2a50b0" opacity="0.45" />
+          </svg>
+          <span id="theme-pill" class="theme-pill"></span>
+        </div>
+        <div class="topbar-right">
+          <input type="date" id="plan-date-picker" class="plan-date-picker hidden" />
+          <button id="plan-regen-btn" class="plan-regen-btn" title="Regenerate today's plan">Regenerate</button>
+          <button id="plan-return-btn" class="plan-return-btn hidden">Return to today</button>
+          <button id="plan-date-btn" class="plan-date-btn" title="Preview Plan for a different date">📅</button>
+          <span id="topbar-date" class="topbar-date"></span>
+          <span id="alert-pill" class="alert-pill"></span>
+        </div>
+      </header>
+
+      <!-- THREE COLUMNS -->
+      <div class="columns">
+
+        <!-- LEFT — CALENDAR -->
+        <div class="col col-calendar">
+          <div class="col-header">
+            <span>Calendar</span>
+            <button class="col-edit-btn" data-editor-kind="calendar">Edit</button>
+          </div>
+          <div class="col-body" id="col-calendar-body">
+            <!-- Time grid layer (absolute) -->
+            <div class="time-grid" id="time-grid"></div>
+            <!-- Events layer -->
+            <div class="events-layer" id="events-layer">
+              <div class="now-line" id="now-line">
+                <div class="now-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE — PROJECTS -->
+        <div class="col col-projects">
+          <div class="col-header">
+            <span>Projects</span>
+            <button class="col-edit-btn" data-editor-kind="projects">Edit</button>
+          </div>
+          <div class="col-body" id="col-projects-body">
+            <div id="block-morning" class="project-block">
+              <div class="block-label-row">
+                <span class="block-label">Morning</span>
+              </div>
+              <div class="cards-area" id="cards-morning"></div>
+            </div>
+            <div id="block-afternoon" class="project-block">
+              <div class="block-label-row">
+                <span class="block-label">Afternoon</span>
+              </div>
+              <div class="cards-area" id="cards-afternoon"></div>
+            </div>
+            <div id="block-evening" class="project-block">
+              <div class="block-label-row">
+                <span class="block-label">Evening</span>
+              </div>
+              <div class="cards-area" id="cards-evening"></div>
+            </div>
+            <!-- Middle col now line -->
+            <div class="now-line-mid" id="now-line-mid">
+              <span class="now-label-mid">now</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT — TASKS -->
+        <div class="col col-tasks">
+          <div class="col-header">
+            <span>Tasks</span>
+            <button class="col-edit-btn" data-editor-kind="tasks">Edit</button>
+          </div>
+          <div class="col-body" id="col-tasks-body">
+            <div id="tasks-morning" class="task-section">
+              <div class="task-section-label">Morning</div>
+            </div>
+            <div id="tasks-afternoon" class="task-section">
+              <div class="task-section-label">Afternoon</div>
+            </div>
+            <div id="tasks-evening" class="task-section">
+              <div class="task-section-label">Evening</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- .columns -->
+
+      <!-- DETAIL PANEL -->
+      <div id="detail-panel" class="detail-panel detail-hidden">
+        <div class="detail-inner">
+          <div class="detail-header">
+            <span id="detail-title" class="detail-title"></span>
+            <button id="detail-close" class="detail-close">×</button>
+          </div>
+          <div id="detail-chips" class="detail-chips"></div>
+          <div id="detail-body" class="detail-body"></div>
+          <div id="detail-actions" class="detail-actions"></div>
+        </div>
+      </div>
+
+      <!-- RESPONSE BUBBLE (above chatbar) -->
+      <div id="response-bubble" class="response-bubble hidden">
+        <span id="response-text"></span><span id="response-cursor" class="cursor hidden">▍</span>
+      </div>
+
+      <!-- CHATBAR -->
+      <div class="chatbar">
+        <button class="mic-btn" title="Voice input (coming soon)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14">
+            <rect x="9" y="2" width="6" height="12" rx="3" />
+            <path d="M5 10a7 7 0 0 0 14 0" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+            <line x1="8" y1="22" x2="16" y2="22" />
+          </svg>
+        </button>
+        <input id="chat-input" type="text" placeholder="Ask anything or update the day…" autocomplete="off" />
+        <button id="send-btn" class="send-btn">Send</button>
+        <button id="eod-btn" class="eod-btn">End of day</button>
+      </div>
+
+    </div><!-- #view-main -->
+
+    <!-- ══ EOD POPUP ══ -->
+    <div id="eod-overlay" class="overlay hidden">
+      <div id="eod-popup" class="eod-popup">
+        <div class="eod-title">End of day log</div>
+        <div class="eod-subtitle">Drag each bar to log your progress.</div>
+
+        <div class="eod-section-label">Project progress</div>
+        <div id="eod-progress-bars"></div>
+
+        <div class="eod-divider"></div>
+
+        <div class="eod-section-label">How was today?</div>
+        <div id="eod-emoji-row" class="eod-emoji-row">
+          <button class="eod-emoji" data-rating="1">😞</button>
+          <button class="eod-emoji" data-rating="2">😐</button>
+          <button class="eod-emoji" data-rating="3">🙂</button>
+          <button class="eod-emoji" data-rating="4">😊</button>
+          <button class="eod-emoji" data-rating="5">🚀</button>
+        </div>
+
+        <textarea id="eod-journal" class="eod-journal" placeholder="Anything else the AI should know?"></textarea>
+
+        <div id="eod-close-progress" class="eod-close-progress hidden"></div>
+
+        <div class="eod-buttons">
+          <button id="eod-cancel" class="eod-cancel-btn">Cancel</button>
+          <button id="eod-submit" class="eod-submit-btn">Submit and close day</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PLANNING REVIEW MODAL ══ -->
+    <div id="planning-modal" class="overlay hidden">
+      <div class="popup-card">
+        <div class="popup-title">Monthly Planning Review</div>
+        <div class="popup-sub">Review the AI's draft suggestions before they become permanent.</div>
+        <div id="planning-draft-content" class="planning-draft-content"></div>
+        <textarea id="planning-edit-area" class="planning-edit-area hidden"
+          placeholder="Edit the draft content…"></textarea>
+        <div class="popup-actions">
+          <button id="planning-reject-btn" class="btn-reject">Reject</button>
+          <button id="planning-edit-btn" class="btn-edit">Edit then approve</button>
+          <button id="planning-approve-btn" class="btn-approve">Approve</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor-overlay" class="overlay hidden">
+      <div class="editor-card">
+        <div class="editor-header">
+          <div>
+            <div id="editor-title" class="popup-title">Edit</div>
+            <div id="editor-subtitle" class="popup-sub">Update today's plan and master list.</div>
+          </div>
+          <button id="editor-close" class="detail-close">×</button>
+        </div>
+        <div id="editor-content" class="editor-content"></div>
+        <div class="popup-actions">
+          <button id="editor-cancel-btn" class="btn-reject">Cancel</button>
+          <button id="editor-save-btn" class="btn-approve">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor-reason-overlay" class="overlay hidden">
+      <div class="popup-card">
+        <div class="popup-title">Why Did You Change It?</div>
+        <div class="popup-sub">This reason will be used to learn from your edits and update planning/rules if needed.</div>
+        <textarea id="editor-reason-input" class="planning-edit-area"
+          placeholder="Explain why you made these changes."></textarea>
+        <div class="popup-actions">
+          <button id="editor-reason-cancel" class="btn-reject">Back</button>
+          <button id="editor-reason-save" class="btn-approve">Save With Reason</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <script src="app.js"></script>
+</body>
+
+</html>
