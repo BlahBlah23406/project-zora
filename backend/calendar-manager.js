@@ -1,21 +1,3 @@
-/**
- * calendar-manager.js
- * Manages context/calendar_events.json.
- *
- * Event schema:
- *   id            string   — unique identifier
- *   date          string?  — YYYY-MM-DD (one-time events only)
- *   recurring     string?  — "daily" | "MON-FRI" | "MON,WED,FRI" | "WEEKLY:FRI" | "MONTHLY:15" | null
- *   time_start    string?  — "HH:MM" start time | null
- *   time_end      string?  — "HH:MM" end time | null
- *   strict_timing boolean  — true = fixed time (AI must not change it); false = AI may adjust
- *   ai_notes      string   — AI-generated notes
- *   completed     boolean
- *   exceptions    string[] — YYYY-MM-DD dates to skip (recurring events)
- *
- * Names live in context/names.json, keyed by id.
- */
-
 'use strict';
 
 const fs   = require('fs');
@@ -27,12 +9,10 @@ const NAMES_PATH = path.join(__dirname, '../context/names.json');
 
 const DOW_MAP = { MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 0 };
 
-// ── Recurring helpers ─────────────────────────────────────────────────────────
-
 function matchesRecurring(event, dateStr) {
   if (!event.recurring) return false;
   const d   = new Date(dateStr + 'T12:00:00');
-  const dow = d.getDay(); // 0=Sun…6=Sat
+  const dow = d.getDay();
   const rule = event.recurring.toUpperCase();
 
   if (rule === 'DAILY')   return true;
@@ -52,8 +32,6 @@ function matchesRecurring(event, dateStr) {
   return false;
 }
 
-// ── Store helpers ─────────────────────────────────────────────────────────────
-
 function readStore() {
   try { return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')); }
   catch { return { events: [] }; }
@@ -71,11 +49,9 @@ function writeNames(names) {
   fs.writeFileSync(NAMES_PATH, JSON.stringify(names, null, 2) + '\n', 'utf8');
 }
 
-// ── ID generator ──────────────────────────────────────────────────────────────
-
 function makeId(name, existing) {
   const names = readNames();
-  const base = (name || 'event')
+  const base  = (name || 'event')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .split(/\s+/)
@@ -87,12 +63,6 @@ function makeId(name, existing) {
   return id;
 }
 
-// ── Exports ───────────────────────────────────────────────────────────────────
-
-/**
- * Returns events active on `dateStr`.
- * Includes name from names.json for frontend display.
- */
 async function loadTodayEvents(dateStr) {
   const store = readStore();
   const names = readNames();
@@ -120,7 +90,6 @@ function replaceAllEvents(events) {
   return loadAllEvents();
 }
 
-/** Add a new event. name goes to names.json. */
 function addEvent(data) {
   const store = readStore();
   const names = readNames();
@@ -150,7 +119,6 @@ function addEvent(data) {
   return { ...event, name: getNameLabel(names, id, id) };
 }
 
-/** Patch event fields. */
 function updateEvent(id, changes) {
   const store = readStore();
   const names = readNames();
@@ -168,7 +136,6 @@ function updateEvent(id, changes) {
   return { ...event, name: getNameLabel(names, id, id) };
 }
 
-/** Remove event and its name. */
 function deleteEvent(id) {
   const store = readStore();
   const names = readNames();
@@ -181,12 +148,10 @@ function deleteEvent(id) {
   return { deleted: id };
 }
 
-/** Mark event completed. */
 function archiveEvent(id) {
   return updateEvent(id, { completed: true });
 }
 
-/** Add a skip date to a recurring event. */
 function addException(id, dateStr) {
   const store = readStore();
   const event = store.events.find((e) => e.id === id);
@@ -197,7 +162,6 @@ function addException(id, dateStr) {
   return event;
 }
 
-/** Reorder events by id array. */
 function reorderEvents(orderedIds) {
   const store = readStore();
   const pos   = {};

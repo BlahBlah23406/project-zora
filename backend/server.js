@@ -1,17 +1,3 @@
-/**
- * server.js — Zora Express server
- *
- * Handles:
- *   Planning  — GET  /api/plan, GET /api/plan/cached
- *   Projects  — GET/POST /api/tasks, /api/task-*
- *   Tasks     — CRUD /api/tasks/*
- *   Calendar  — CRUD /api/calendar/*
- *   Names     — GET  /api/names
- *   Today     — GET  /api/today
- *   End-of-day— POST /api/close-day
- *   SSE feed  — GET  /api/events
- */
-
 'use strict';
 
 require('dotenv').config();
@@ -20,9 +6,9 @@ const path    = require('path');
 const fs      = require('fs');
 
 const { startOllama, stopOllama }              = require('./ollama-manager');
-const { readWhiteboard, updateWhiteboard, setWhiteboard,
+const { readWhiteboard, setWhiteboard,
         getToday }                             = require('./memory');
-const { loadAllTasks, loadTaskById,
+const { loadAllTasks,
         addProject, updateProject,
         deleteProject, readNames,
         readProjects, writeProjects, writeNames } = require('./task-loader');
@@ -46,8 +32,6 @@ const RULES_PATH = path.join(CONTEXT_DIR, 'rules.md');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
-
-// ── SSE broadcast ─────────────────────────────────────────────────────────────
 
 const streamClients = new Set();
 
@@ -83,22 +67,18 @@ emitter.on('ollama:response', ({ mode, model, response, thinking, rawResponse })
   broadcastEvent({ type: 'response', mode, model, response, thinking, rawResponse, ts: Date.now() });
 });
 
-// GET /stream — stream viewer
 app.get('/stream', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/stream.html'));
 });
 
-// ── Auth status (always authenticated — local mode, no Google OAuth required) ──
 
 app.get('/api/auth-status', (_req, res) => res.json({ authenticated: true }));
 
-// ── Health ────────────────────────────────────────────────────────────────────
 
 app.get('/api/status', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ── Quotes ────────────────────────────────────────────────────────────────────
 
 app.get('/api/quotes', (_req, res) => {
   try {
@@ -113,7 +93,6 @@ app.get('/api/quotes', (_req, res) => {
   }
 });
 
-// ── Names (id → display name) ─────────────────────────────────────────────────
 
 app.get('/api/names', (_req, res) => {
   try {
@@ -137,7 +116,6 @@ app.post('/api/names', (req, res) => {
   }
 });
 
-// ── Plan ──────────────────────────────────────────────────────────────────────
 
 app.get('/api/plan', async (req, res) => {
   try {
@@ -160,7 +138,6 @@ app.get('/api/plan/cached', (_req, res) => {
   res.status(404).json({ error: 'No cached plan' });
 });
 
-// ── Today ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/today', async (_req, res) => {
   try {
@@ -178,10 +155,6 @@ app.get('/api/today', async (_req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-function cleanNamesMap(names) {
-  return cleanNameLabels(names);
-}
 
 function sanitizeProject(project) {
   return {
@@ -536,7 +509,6 @@ app.post('/api/editor/save', async (req, res) => {
   }
 });
 
-// ── Projects (tasks panel) ────────────────────────────────────────────────────
 
 app.get('/api/tasks', (_req, res) => {
   try { res.json(loadAllTasks()); }
@@ -591,7 +563,6 @@ app.post('/api/task-reactivate', async (req, res) => {
   }
 });
 
-// ── Project lifecycle ─────────────────────────────────────────────────────────
 
 app.post('/api/new-task', async (req, res) => {
   const { description, name, rank } = req.body || {};
@@ -629,7 +600,6 @@ app.post('/api/reject-task', (req, res) => {
   }
 });
 
-// POST /api/projects/add — add a project directly (name goes to names.json)
 app.post('/api/projects/add', (req, res) => {
   try {
     const project = addProject(req.body || {});
@@ -664,7 +634,6 @@ app.post('/api/projects/delete', (req, res) => {
   }
 });
 
-// ── Calendar CRUD ─────────────────────────────────────────────────────────────
 
 app.post('/api/calendar/add', (req, res) => {
   try {
@@ -736,7 +705,6 @@ app.post('/api/calendar/reorder', (req, res) => {
   }
 });
 
-// ── Tasks CRUD (small daily tasks) ───────────────────────────────────────────
 
 app.post('/api/tasks/add', (req, res) => {
   try {
@@ -784,9 +752,7 @@ app.post('/api/tasks/update', (req, res) => {
   }
 });
 
-// ── Close day ─────────────────────────────────────────────────────────────────
-
-app.post('/api/close-day', async (req, res) => {
+app.post('/api/close-day', async (_req, res) => {
   res.setHeader('Content-Type',  'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection',    'keep-alive');
@@ -796,7 +762,6 @@ app.post('/api/close-day', async (req, res) => {
   const today = getToday();
 
   try {
-    // Archive today's plan entry
     send({ step: 1, label: 'Archiving today\'s plan', status: 'running' });
     try {
       const board = readWhiteboard();
@@ -806,9 +771,6 @@ app.post('/api/close-day', async (req, res) => {
         const planning = fs.existsSync(planningPath)
           ? fs.readFileSync(planningPath, 'utf8').slice(-400)
           : '';
-
-        const projects  = loadAllTasks();
-        const tasks     = tasksManager.loadAllTasks();
 
         const raw = await generate({
           model:  OLLAMA_MODEL,
@@ -844,19 +806,15 @@ Output only bullet points.`,
   res.end();
 });
 
-// ── Context status ────────────────────────────────────────────────────────────
 
 app.get('/api/context-status', (_req, res) => res.json({ planningReviewPending: false }));
 
-// ── Conversation reset (stub) ─────────────────────────────────────────────────
 
 app.post('/api/reset-conversation', (_req, res) => res.json({ ok: true }));
 
-// ── Advance day (stub — no date simulation) ───────────────────────────────────
 
 app.post('/api/advance-day', (_req, res) => res.json({ ok: false, message: 'Not implemented' }));
 
-// ── Journal v2 — EOD journal entry saved to planning.md (SSE) ────────────────
 
 app.post('/api/journal/v2', async (req, res) => {
   res.setHeader('Content-Type',  'text/event-stream');
@@ -891,7 +849,6 @@ app.post('/api/journal/v2', async (req, res) => {
   res.end();
 });
 
-// ── Message stream ────────────────────────────────────────────────────────────
 
 app.post('/api/message/stream', async (req, res) => {
   const { generateStream, OLLAMA_MODEL } = require('./ollama');
@@ -961,7 +918,6 @@ User message: ${message}`;
   send({ type: 'done' });
   res.end();
 
-  // Apply any planning/rules edits described in the response (async, after stream ends)
   if (fullResponse.trim()) {
     setImmediate(() => {
       applyEditsWithVerification(fullResponse, contextPrompt).catch((err) =>
@@ -971,13 +927,11 @@ User message: ${message}`;
   }
 });
 
-// ── SPA fallback ──────────────────────────────────────────────────────────────
 
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// ── File watcher ──────────────────────────────────────────────────────────────
 
 function startFileWatcher() {
   let chokidar;
@@ -1000,7 +954,6 @@ function startFileWatcher() {
   console.log(`[watcher] Watching ${CONTEXT_DIR}`);
 }
 
-// ── Startup ───────────────────────────────────────────────────────────────────
 
 function startServer(preferredPort, maxAttempts = 20) {
   return new Promise((resolve, reject) => {

@@ -1,25 +1,5 @@
 'use strict';
 
-/**
- * task-loader.js
- * Reads from context/projects.json.
- *
- * Project schema:
- *   id             string   — unique identifier
- *   steps          string[] — ordered list of steps
- *   current_step   number   — index of current step (0-based)
- *   deadline       string?  — YYYY-MM-DD | null
- *   priority_rank  number   — lower = higher priority
- *   ai_notes       string   — AI-generated notes
- *
- * Names live in context/names.json, keyed by id.
- *
- * loadAllTasks()             — active + new projects
- * loadAllTasksIncludingAll() — all projects regardless of folder
- * loadTaskById(id)           — single project
- * readProjects()             — raw store
- */
-
 const fs   = require('fs');
 const path = require('path');
 const { getNameLabel, getNameType, setNameEntry } = require('./names-registry');
@@ -53,7 +33,7 @@ function hydrate(p, names) {
   names = names || {};
   return {
     id:            p.id            || '',
-    name:          getNameLabel(names, p.id, p.id),   // frontend display only
+    name:          getNameLabel(names, p.id, p.id),
     steps:         p.steps         || [],
     current_step:  p.current_step  ?? 0,
     deadline:      p.deadline      || null,
@@ -61,7 +41,6 @@ function hydrate(p, names) {
     ai_notes:      p.ai_notes      || '',
     folder:        p.folder        || 'active',
     status:        p.status        || 'active',
-    // Legacy compat fields used by planner block hydration
     rank:          p.priority_rank ?? 99,
     rankLabel:     p.priority_rank ? `Rank ${p.priority_rank}` : '',
     estimatedMinutes: p.estimatedMinutes || 60,
@@ -91,12 +70,10 @@ function loadTaskById(id) {
   return p ? hydrate(p, names) : null;
 }
 
-/** Add a new project. name goes to names.json, data to projects.json. */
 function addProject(data) {
   const store = readProjects();
   const names = readNames();
 
-  // Auto-generate id from name if not provided
   let id = data.id;
   if (!id) {
     const base = (data.name || 'project')
@@ -136,11 +113,9 @@ function addProject(data) {
   return hydrate(project, names);
 }
 
-/** Update project fields. If changes.name provided, updates names.json. */
 function updateProject(id, changes) {
-  const store = readProjects();
-  const names = readNames();
-
+  const store   = readProjects();
+  const names   = readNames();
   const project = store.projects.find((p) => p.id === id);
   if (!project) throw new Error(`Project '${id}' not found`);
 
@@ -155,7 +130,6 @@ function updateProject(id, changes) {
   return hydrate(project, names);
 }
 
-/** Delete a project and its name. */
 function deleteProject(id) {
   const store = readProjects();
   const names = readNames();

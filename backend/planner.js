@@ -1,28 +1,3 @@
-/**
- * planner.js — Daily planning flow
- *
- * generateDayPlan() — planning sequence
- *   Steps 1–5:        deepseek-r1  (global context analysis)
- *   Category passes:  deepseek-r1  (projects / tasks / events)
- *   Synthesis:        deepseek-r1  (combined day schedule)
- *   Step 6:     qwen2.5      (JSON formatting → daily_planner.json)
- *   Step 7:     deepseek-r1  (async forward planning → planning.md)
- *
- * Step 1  — Important events
- * Step 2  — Important tasks / task deadlines
- * Step 3  — Important projects / project deadlines
- * Step 4  — Relevant planning.md context
- * Step 5  — Relevant rules.md context
- * Then for projects, tasks, and events:
- *   1. Select all relevant items for today
- *   2. Order them through the day
- *   3. Align them with planning.md
- *   4. Align them with rules.md
- * Then synthesize one combined day-schedule document
- * Step 6  — Format plan into daily_planner.json  (qwen)
- * Step 7  — Forward planning 3d / 1w / 2w / 1mo (async, deepseek)
- */
-
 'use strict';
 
 const fs   = require('fs');
@@ -30,19 +5,19 @@ const path = require('path');
 
 const { generate, extractJSON,
         OLLAMA_MODEL, OLLAMA_JSON_MODEL } = require('./ollama');
+const { runConflictAudit } = require('./auditor-agent');
+const { runNuanceCheck }   = require('./nuance-agent');
 const { updateWhiteboard } = require('./memory');
 const calendarManager = require('./calendar-manager');
 const tasksManager    = require('./tasks-manager');
 const { readProjects } = require('./task-loader');
-const { getNameType } = require('./names-registry');
+const { getNameType }  = require('./names-registry');
 
 const CONTEXT_DIR = path.join(__dirname, '../context');
-const DEEPSEEK    = OLLAMA_MODEL;       // deepseek-r1:7b  (env: OLLAMA_MODEL)
-const QWEN        = OLLAMA_JSON_MODEL;  // qwen2.5:3b      (env: OLLAMA_JSON_MODEL)
+const DEEPSEEK    = OLLAMA_MODEL;
+const QWEN        = OLLAMA_JSON_MODEL;
 const DEEPSEEK_NUM_PREDICT = 6000;
 const BULLET_SYSTEM = 'You are a planning assistant. Output only short bullet points. Be concise. No preamble.';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function readContextFile(filename) {
   const p = path.join(CONTEXT_DIR, filename);
@@ -54,7 +29,7 @@ function today() {
 }
 
 function collectPlanItemsById(blocks, validIds) {
-  const seen = new Set();
+  const seen  = new Set();
   const items = [];
 
   for (const blockName of ['morning', 'afternoon', 'evening']) {
@@ -87,7 +62,7 @@ async function buildCategoryPlan({
   globalContextDoc,
   planningSummary,
   rulesSummary,
-  runTimingStep = false,   // only true for events
+  runTimingStep = false,
 }) {
   const itemJson = JSON.stringify(itemsCtx);
 
@@ -137,9 +112,8 @@ Constraints:
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // — Step 2b: Assign start/end times (events only) ——————————————————————
-  let timings = {};
-  let timingDoc = '';
+  let timings    = {};
+  let timingDoc  = '';
   if (runTimingStep) {
     step(`${categoryName} — Assigning start/end times…`);
 
@@ -231,41 +205,36 @@ Constraints:
   return { doc, timings };
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
-
 async function generateDayPlan(onStep, targetDate) {
   const step    = (label) => { if (onStep) onStep(label); console.log('[planner]', label); };
   const dateStr = targetDate || today();
 
   step(`Generating plan for ${dateStr}…`);
 
-  // ── Load context (no AI yet) ──────────────────────────────────────────────
-  const projects   = readProjects().projects || [];
-  const tasks      = tasksManager.loadAllTasks();
-  const planning   = readContextFile('planning.md');
-  const rules      = readContextFile('rules.md');
+  const projects = readProjects().projects || [];
+  const tasks    = tasksManager.loadAllTasks();
+  const planning = readContextFile('planning.md');
+  const rules    = readContextFile('rules.md');
 
-  // Load all known valid IDs from names.json for plan verification
-  const namesPath   = path.join(CONTEXT_DIR, 'names.json');
-  const namesJson   = fs.existsSync(namesPath)
+  const namesPath  = path.join(CONTEXT_DIR, 'names.json');
+  const namesJson  = fs.existsSync(namesPath)
     ? JSON.parse(fs.readFileSync(namesPath, 'utf8'))
     : {};
-  const knownIds    = new Set(Object.keys(namesJson).filter((id) => !id.startsWith('_')));
-  const knownTypes  = Object.fromEntries(
+  const knownIds   = new Set(Object.keys(namesJson).filter((id) => !id.startsWith('_')));
+  const knownTypes = Object.fromEntries(
     [...knownIds].map((id) => [id, getNameType(namesJson, id, null)])
   );
 
   let eventsArr = [];
   try { eventsArr = await calendarManager.loadTodayEvents(dateStr); } catch { /* non-fatal */ }
 
-  // Compact context — AI sees ONLY ids, never names
   const projectsCtx = projects.map((p) => ({
-    id:           p.id,
+    id:            p.id,
     priority_rank: p.priority_rank ?? 99,
-    deadline:     p.deadline || null,
-    current_step: p.current_step ?? 0,
-    steps_total:  (p.steps || []).length,
-    ai_notes:     p.ai_notes || '',
+    deadline:      p.deadline || null,
+    current_step:  p.current_step ?? 0,
+    steps_total:   (p.steps || []).length,
+    ai_notes:      p.ai_notes || '',
   }));
 
   const tasksCtx = tasks.map((t) => ({
@@ -285,7 +254,6 @@ async function generateDayPlan(onStep, targetDate) {
     ai_notes:      e.ai_notes      || '',
   }));
 
-  // ── Step 1: Important events ──────────────────────────────────────────────
   step('Step 1 — Checking for important events today…');
   const step1 = await generate({
     model:  DEEPSEEK,
@@ -304,7 +272,6 @@ If none, say "None."`,
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // ── Step 2: Important tasks / deadlines ──────────────────────────────────
   step('Step 2 — Checking important tasks and task deadlines…');
   const step2 = await generate({
     model:  DEEPSEEK,
@@ -324,7 +291,6 @@ If none, say "None."`,
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // ── Step 3: Important projects / deadlines ────────────────────────────────
   step('Step 3 — Checking important projects and project deadlines…');
   const step3 = await generate({
     model:  DEEPSEEK,
@@ -344,12 +310,11 @@ If none, say "None."`,
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // ── Step 4: Planning doc ──────────────────────────────────────────────────
   step('Step 4 — Reviewing planning document…');
   const step4 = await generate({
     model:  DEEPSEEK,
     system: BULLET_SYSTEM,
-    prompt: `Today is ${dateStr}. Read this planning document and extract only the most relevant and important information for today.
+    prompt: `Today is ${dateStr}. Read this planning document and extract only the most relevant information for today.
 
 ${planning || '(empty)'}
 
@@ -357,15 +322,14 @@ Output 2-4 short bullet points only.`,
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // ── Step 5: Rules ─────────────────────────────────────────────────────────
   step('Step 5 — Reviewing rules…');
   const step5 = await generate({
     model:  DEEPSEEK,
     system: BULLET_SYSTEM,
-    prompt: `Today is ${dateStr}. Read this rules file and note only the planning rules and generation rules most relevant today.
+    prompt: `Today is ${dateStr}. Read this rules file and note only the planning rules most relevant today.
 
 Ignore rules that merely describe the day schedule itself.
-Prefer rules about how to plan, how to generate plans, how to avoid duplication, and how to keep output simple.
+Prefer rules about how to plan, how to generate plans, and how to keep output simple.
 
 ${rules || '(empty)'}
 
@@ -392,51 +356,58 @@ Output 2-5 short bullet points only.`,
     step5,
   ].join('\n');
 
-  const { doc: projectsDoc } = await buildCategoryPlan({
-    step,
-    dateStr,
-    categoryName: 'Projects',
-    itemLabel: 'projects',
-    itemsCtx: projectsCtx,
-    globalContextDoc,
-    planningSummary: step4,
-    rulesSummary: step5,
-  });
+  step('Running category plans and constraint audit in parallel…');
+  const [
+    { doc: projectsDoc },
+    { doc: tasksDoc },
+    { doc: eventsDoc, timings: allTimings },
+    auditReport,
+  ] = await Promise.all([
+    buildCategoryPlan({
+      step, dateStr,
+      categoryName:    'Projects',
+      itemLabel:       'projects',
+      itemsCtx:        projectsCtx,
+      globalContextDoc,
+      planningSummary: step4,
+      rulesSummary:    step5,
+    }),
+    buildCategoryPlan({
+      step, dateStr,
+      categoryName:    'Tasks',
+      itemLabel:       'tasks',
+      itemsCtx:        tasksCtx,
+      globalContextDoc,
+      planningSummary: step4,
+      rulesSummary:    step5,
+    }),
+    buildCategoryPlan({
+      step, dateStr,
+      categoryName:    'Events',
+      itemLabel:       'events',
+      itemsCtx:        eventsCtx,
+      globalContextDoc,
+      planningSummary: step4,
+      rulesSummary:    step5,
+      runTimingStep:   true,
+    }),
+    runConflictAudit({ dateStr, projectsCtx, tasksCtx, eventsCtx, rules, planning }),
+  ]);
 
-  const { doc: tasksDoc } = await buildCategoryPlan({
-    step,
-    dateStr,
-    categoryName: 'Tasks',
-    itemLabel: 'tasks',
-    itemsCtx: tasksCtx,
-    globalContextDoc,
-    planningSummary: step4,
-    rulesSummary: step5,
-  });
-
-  const { doc: eventsDoc, timings: allTimings } = await buildCategoryPlan({
-    step,
-    dateStr,
-    categoryName: 'Events',
-    itemLabel: 'events',
-    itemsCtx: eventsCtx,
-    globalContextDoc,
-    planningSummary: step4,
-    rulesSummary: step5,
-    runTimingStep: true,
-  });
+  if (auditReport.hasConstraints) {
+    step('Constraint audit — issues detected, will enforce during synthesis…');
+  } else {
+    step('Constraint audit — no conflicts detected.');
+  }
 
   const categoryPlanDoc = [
-    globalContextDoc,
-    '',
-    projectsDoc,
-    '',
-    tasksDoc,
-    '',
-    eventsDoc,
+    globalContextDoc, '', projectsDoc, '', tasksDoc, '', eventsDoc,
   ].join('\n');
 
   step('Step 5a — Combining category plans into one day schedule…');
+  const auditSection = auditReport.hasConstraints
+    ? `\n## Constraint Audit — MUST ADDRESS ALL ROWS\n${auditReport.scratchpad}\n\nIMPORTANT: Before placing any item, check the audit table above. Every constraint row must be reflected in the final schedule.\n`
+    : '';
   const combinedDayDoc = await generate({
     model:  DEEPSEEK,
     system: 'You are a planning assistant. Use only IDs — never use names. Output only short bullet points. Assign concrete actions. No preamble.',
@@ -445,7 +416,7 @@ Output 2-5 short bullet points only.`,
 Here is the full planning context and the completed category planning documents:
 
 ${categoryPlanDoc}
-
+${auditSection}
 Build one combined day schedule for morning / afternoon / evening.
 Follow the rules.md guidance in the global context above.
 
@@ -482,7 +453,27 @@ Return the final schedule only.`,
     options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
   });
 
-  // ── Step 6: Format → daily_planner.json  (qwen) ───────────────────────────
+  let finalPlanDoc = combinedFinalDoc;
+  if (auditReport.hasConstraints) {
+    step('Nuance check — verifying all constraints are covered…');
+    try {
+      const { isClean, patches } = await runNuanceCheck({
+        dateStr,
+        globalContextDoc,
+        generatedPlan:   combinedFinalDoc,
+        auditScratchpad: auditReport.scratchpad,
+      });
+      if (!isClean && patches) {
+        step('Nuance check — corrections found, appending to plan…');
+        finalPlanDoc = `${combinedFinalDoc}\n\n## Nuance Manager Corrections\n${patches}`;
+      } else {
+        step('Nuance check — plan passed, all constraints covered.');
+      }
+    } catch (err) {
+      console.warn('[planner] Nuance check failed (non-fatal):', err.message);
+    }
+  }
+
   step('Step 6 — Formatting plan into daily_planner.json…');
   let plan = null;
   try {
@@ -492,7 +483,7 @@ Return the final schedule only.`,
       prompt: `Convert this plan into JSON.
 
 Plan:
-${combinedFinalDoc}
+${finalPlanDoc}
 
 Important events: ${step1}
 All events today: ${JSON.stringify(eventsCtx)}
@@ -518,10 +509,9 @@ Rules for conversion:
 - For each item in blocks and events, set start_time and end_time from the timing assignments above.
 - If no timing assignment exists for an item, omit start_time and end_time (or use null).
 - "events" should include only real event IDs scheduled in the day plan.
-- "tasks" should include only real task IDs scheduled in the day plan; tasks do not need start_time/end_time.
-- Never place an event ID in "tasks".
-- Never place a task ID in "events".
-- Do not create redundant duplicates across events/tasks/blocks unless explicitly required by the schedule.
+- "tasks" should include only real task IDs scheduled in the day plan.
+- Never place an event ID in "tasks". Never place a task ID in "events".
+- Do not create redundant duplicates across events/tasks/blocks.
 - Each "note" should explain the concrete action or purpose of that scheduled item.`,
       options: { temperature: 0.2, num_predict: 1200 },
     });
@@ -530,7 +520,6 @@ Rules for conversion:
     console.warn('[planner] Step 6 failed:', err.message);
   }
 
-  // Fallback if qwen returned bad JSON
   if (!plan) {
     plan = {
       date:   dateStr,
@@ -539,6 +528,9 @@ Rules for conversion:
       tasks:  [],
     };
   }
+
+  const eventIds = new Set(eventsCtx.map((e) => e.id));
+  const taskIds  = new Set(tasksCtx.map((t)  => t.id));
 
   const normalizePlan = (p) => {
     p.date   = p.date   || dateStr;
@@ -551,14 +543,10 @@ Rules for conversion:
     return p;
   };
 
-  const eventIds = new Set(eventsCtx.map((e) => e.id));
-  const taskIds  = new Set(tasksCtx.map((t)  => t.id));
   plan = normalizePlan(plan);
 
-  // ── Verification loop ─────────────────────────────────────────────────────
-  // Checks: (1) all IDs exist in names.json  (2) no duplicates / near-dupe entries
-  // On failure → deepseek fixes the text plan → qwen re-formats → repeat
-
+  // Verification loop: checks all IDs exist in names.json and catches duplicates.
+  // On failure, deepseek fixes the text plan and qwen re-formats it (up to 3 attempts).
   const MAX_VERIFY = 3;
   const qwenFormatPrompt = (planText) =>
     `Convert this plan into JSON.
@@ -586,18 +574,14 @@ Required schema (follow exactly):
 
 Rules for conversion:
 - Preserve the actual scheduled items from the plan; do not collapse or omit categories.
-- Each block should contain the scheduled mix of projects, tasks, and events from the plan text.
 - For each item in blocks and events, set start_time and end_time from the timing assignments above.
-- If no timing assignment exists for an item, omit start_time and end_time (or use null).
-- "events" should include only real event IDs scheduled in the day plan.
-- "tasks" should include only real task IDs scheduled in the day plan; tasks do not need start_time/end_time.
-- Never place an event ID in "tasks".
-- Never place a task ID in "events".
-- Do not create redundant duplicates across events/tasks/blocks unless explicitly required by the schedule.
-- Each "note" should explain the concrete action or purpose of that scheduled item.`;
+- If no timing assignment exists, omit start_time and end_time (or use null).
+- "events" should include only real event IDs. "tasks" should include only real task IDs.
+- Never place an event ID in "tasks". Never place a task ID in "events".
+- Do not create redundant duplicates.
+- Each "note" should explain the concrete action or purpose of that item.`;
 
   for (let attempt = 1; attempt <= MAX_VERIFY; attempt++) {
-    // — Check 1: ID validation against names.json ——————————————————————————
     const allPlanEntries = [
       ...['morning', 'afternoon', 'evening'].flatMap((b) =>
         (plan.blocks[b] || []).map((item) => ({ id: item.id, loc: `blocks.${b}` }))
@@ -616,7 +600,6 @@ Rules for conversion:
         .map((item) => ({ id: item.id, loc: 'tasks', expected: 'task', actual: knownTypes[item.id] })),
     ];
 
-    // — Check 2: Qwen duplication check ———————————————————————————————————
     step(`Verification attempt ${attempt} — asking qwen to check for duplicates…`);
     let dupeResult = { duplicates_found: false, issues: [] };
     try {
@@ -657,7 +640,6 @@ If no issues: {"duplicates_found": false, "issues": []}`,
       break;
     }
 
-    // — Build precise error report for deepseek ————————————————————————————
     const errorParts = [];
     if (hasIdIssues) {
       errorParts.push(
@@ -697,7 +679,6 @@ Produce a corrected plan. Rules:
 - use task IDs only inside the top-level "tasks" list
 - each ID may appear at most once across the entire plan
 - preserve the original intent where the IDs are valid
-- follow rules.md guidance above
 
 Output:
 - three sections: Morning, Afternoon, Evening
@@ -706,7 +687,6 @@ Output:
       options: { temperature: 0.3, num_predict: DEEPSEEK_NUM_PREDICT },
     });
 
-    // — Re-format with qwen ————————————————————————————————————————————————
     step(`Verification attempt ${attempt} — re-formatting fixed plan with qwen…`);
     try {
       const rawFixed = await generate({
@@ -722,7 +702,6 @@ Output:
     }
   }
 
-  // Persist to daily_planner.json
   try {
     updateWhiteboard(plan);
   } catch (err) {
@@ -731,7 +710,6 @@ Output:
 
   step('Plan ready!');
 
-  // ── Step 7: Async forward planning (deepseek) ─────────────────────────────
   setImmediate(() => {
     updateForwardPlan(projects, tasks, dateStr).catch((err) =>
       console.warn('[planner] Forward plan failed:', err.message)
@@ -740,8 +718,6 @@ Output:
 
   return plan;
 }
-
-// ── Step 7 — Forward planning (async) ────────────────────────────────────────
 
 async function updateForwardPlan(projects, tasks, dateStr) {
   const planning     = readContextFile('planning.md');
@@ -814,7 +790,5 @@ Rules:
     console.warn('[planner] Could not append forward plan:', err.message);
   }
 }
-
-// ── Module exports ────────────────────────────────────────────────────────────
 
 module.exports = { generateDayPlan };

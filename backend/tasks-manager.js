@@ -1,18 +1,3 @@
-/**
- * tasks-manager.js
- * Manages context/tasks.json — master list of small daily tasks.
- *
- * Task schema:
- *   id        string   — auto-generated kebab-case slug
- *   desc      string   — task description
- *   recurring string?  — "daily" | "weekly" | "MON-FRI" | null
- *   deadline  string?  — YYYY-MM-DD | null
- *   ai_notes  string   — AI-generated notes (empty by default)
- *   completed boolean
- *
- * Names live in context/names.json, keyed by id.
- */
-
 'use strict';
 
 const fs   = require('fs');
@@ -21,8 +6,6 @@ const { getNameType, setNameEntry } = require('./names-registry');
 
 const TASKS_PATH = path.join(__dirname, '../context/tasks.json');
 const NAMES_PATH = path.join(__dirname, '../context/names.json');
-
-// ── Store helpers ─────────────────────────────────────────────────────────────
 
 function readStore() {
   try { return JSON.parse(fs.readFileSync(TASKS_PATH, 'utf8')); } catch { return { tasks: [] }; }
@@ -40,8 +23,6 @@ function writeNames(names) {
   fs.writeFileSync(NAMES_PATH, JSON.stringify(names, null, 2) + '\n', 'utf8');
 }
 
-// ── ID generator ──────────────────────────────────────────────────────────────
-
 function makeId(desc, existing) {
   const names = readNames();
   const base = (desc || 'task')
@@ -56,9 +37,6 @@ function makeId(desc, existing) {
   return id;
 }
 
-// ── Exports ───────────────────────────────────────────────────────────────────
-
-/** Returns all tasks. */
 function loadAllTasks() {
   return readStore().tasks;
 }
@@ -68,15 +46,10 @@ function replaceAllTasks(tasks) {
   return loadAllTasks();
 }
 
-/** Returns incomplete tasks (optionally filtered by date or recurring). */
 function loadTodayTasks() {
   return readStore().tasks.filter((t) => !t.completed);
 }
 
-/**
- * Add a new task.
- * @param {{ name: string, desc?: string, recurring?: string, deadline?: string }} data
- */
 function addTask(data) {
   const store = readStore();
   const id    = makeId(data.desc || data.name || 'task', store.tasks);
@@ -98,7 +71,6 @@ function addTask(data) {
   store.tasks.push(task);
   writeStore(store);
 
-  // Save name to names.json if provided
   if (data.name) {
     setNameEntry(names, id, data.name, 'task');
     writeNames(names);
@@ -107,7 +79,6 @@ function addTask(data) {
   return task;
 }
 
-/** Mark a task complete. */
 function completeTask(id) {
   const store = readStore();
   const task  = store.tasks.find((t) => t.id === id);
@@ -117,7 +88,6 @@ function completeTask(id) {
   return task;
 }
 
-/** Delete a task from the store and names.json. */
 function deleteTask(id) {
   const store = readStore();
   const idx   = store.tasks.findIndex((t) => t.id === id);
@@ -132,7 +102,6 @@ function deleteTask(id) {
   return { deleted: id };
 }
 
-/** Patch task fields. */
 function updateTask(id, changes) {
   const store = readStore();
   const task  = store.tasks.find((t) => t.id === id);
@@ -140,7 +109,6 @@ function updateTask(id, changes) {
   Object.assign(task, changes);
   writeStore(store);
 
-  // If name is in changes, update names.json
   if (changes.name !== undefined) {
     const names = readNames();
     setNameEntry(names, id, changes.name, 'task');
