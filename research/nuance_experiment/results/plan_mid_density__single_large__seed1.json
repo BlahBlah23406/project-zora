@@ -8,10 +8,10 @@
   "n_violations": 2,
   "cost": {
     "n_calls": 1,
-    "latency_s": 0.1,
-    "prompt_tokens": 0,
-    "gen_tokens": 0,
-    "any_call_failed": true
+    "latency_s": 104.45,
+    "prompt_tokens": 244,
+    "gen_tokens": 700,
+    "any_call_failed": false
   },
   "detail": [
     {

@@ -1,16 +1,16 @@
 {
   "task": "plan_mid_density",
   "density": "mid",
-  "arm": "single_large",
-  "seed": 0,
+  "arm": "self_moa",
+  "seed": 1,
   "correctness": 0.5,
   "ledger_recall": 0.5,
   "n_violations": 2,
   "cost": {
-    "n_calls": 1,
-    "latency_s": 172.28,
-    "prompt_tokens": 244,
-    "gen_tokens": 700,
+    "n_calls": 3,
+    "latency_s": 323.44,
+    "prompt_tokens": 732,
+    "gen_tokens": 2100,
     "any_call_failed": false
   },
   "detail": [

@@ -1,0 +1,48 @@
+{
+  "task": "plan_high_density",
+  "density": "high",
+  "arm": "decomp_noNM",
+  "seed": 2,
+  "correctness": 0.5,
+  "ledger_recall": 0.5,
+  "n_violations": 3,
+  "cost": {
+    "n_calls": 3,
+    "latency_s": 191.47,
+    "prompt_tokens": 328,
+    "gen_tokens": 1085,
+    "any_call_failed": false
+  },
+  "detail": [
+    {
+      "desc": "Due <48h -> must be scheduled.",
+      "cross_chunk": true,
+      "ok": true
+    },
+    {
+      "desc": "Overlapping strict events; only one.",
+      "cross_chunk": true,
+      "ok": false
+    },
+    {
+      "desc": "Keep evt_class of the overlapping pair.",
+      "cross_chunk": true,
+      "ok": true
+    },
+    {
+      "desc": "Rule x projects: no robotics in evening.",
+      "cross_chunk": true,
+      "ok": true
+    },
+    {
+      "desc": "task_prep (tasks chunk) must precede proj_zora (projects chunk) -- a relation severed by category chunking.",
+      "cross_chunk": true,
+      "ok": false
+    },
+    {
+      "desc": "Two projects must not share a block; both live in the projects chunk but the constraint is a rule.",
+      "cross_chunk": true,
+      "ok": false
+    }
+  ]
+}

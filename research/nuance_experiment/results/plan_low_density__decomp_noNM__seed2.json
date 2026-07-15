@@ -3,14 +3,14 @@
   "density": "low",
   "arm": "decomp_noNM",
   "seed": 2,
-  "correctness": 0.0,
+  "correctness": 0.5,
   "ledger_recall": 0.0,
-  "n_violations": 2,
+  "n_violations": 1,
   "cost": {
     "n_calls": 3,
-    "latency_s": 98.39,
+    "latency_s": 164.64,
     "prompt_tokens": 322,
-    "gen_tokens": 1056,
+    "gen_tokens": 1049,
     "any_call_failed": false
   },
   "detail": [
@@ -22,7 +22,7 @@
     {
       "desc": "Strict class event must appear.",
       "cross_chunk": false,
-      "ok": false
+      "ok": true
     }
   ]
 }
