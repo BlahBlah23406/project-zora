@@ -1,0 +1,38 @@
+{
+  "task": "plan_mid_density",
+  "density": "mid",
+  "arm": "single_large",
+  "seed": 2,
+  "correctness": 0.5,
+  "ledger_recall": 0.5,
+  "n_violations": 2,
+  "cost": {
+    "n_calls": 1,
+    "latency_s": 0.12,
+    "prompt_tokens": 0,
+    "gen_tokens": 0,
+    "any_call_failed": true
+  },
+  "detail": [
+    {
+      "desc": "Due <48h -> must be scheduled (rules x tasks).",
+      "cross_chunk": true,
+      "ok": false
+    },
+    {
+      "desc": "evt_meeting 14:00-15:00 overlaps evt_class 14:30-16:00; only one may be scheduled (both live in the calendar chunk but the priority rule lives in rules).",
+      "cross_chunk": true,
+      "ok": true
+    },
+    {
+      "desc": "Of the overlapping pair, evt_class is the one to keep per the rule.",
+      "cross_chunk": true,
+      "ok": false
+    },
+    {
+      "desc": "Rule (rules chunk) forbids proj_robotics (projects chunk) in the evening.",
+      "cross_chunk": true,
+      "ok": true
+    }
+  ]
+}

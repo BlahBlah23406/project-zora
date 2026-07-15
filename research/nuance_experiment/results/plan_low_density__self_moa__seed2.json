@@ -1,0 +1,28 @@
+{
+  "task": "plan_low_density",
+  "density": "low",
+  "arm": "self_moa",
+  "seed": 2,
+  "correctness": 0.0,
+  "ledger_recall": 0.0,
+  "n_violations": 2,
+  "cost": {
+    "n_calls": 3,
+    "latency_s": 185.66,
+    "prompt_tokens": 630,
+    "gen_tokens": 2050,
+    "any_call_failed": false
+  },
+  "detail": [
+    {
+      "desc": "task_hw is due in 20h (<48h) so it MUST be scheduled today (rule spans tasks+rules).",
+      "cross_chunk": true,
+      "ok": false
+    },
+    {
+      "desc": "Strict class event must appear.",
+      "cross_chunk": false,
+      "ok": false
+    }
+  ]
+}
