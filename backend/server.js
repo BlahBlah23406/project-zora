@@ -80,14 +80,19 @@ app.get('/api/status', (_req, res) => {
 });
 
 
+// ⚡ Bolt: Cache parsed quotes to prevent synchronous file read and regex parsing on every request
+let cachedQuotes = null;
 app.get('/api/quotes', (_req, res) => {
   try {
-    const text   = fs.readFileSync(path.join(__dirname, '../galactic_wisdom.md'), 'utf8');
-    const quotes = [];
-    const re     = /\*\*"(.+?)"\*\* — \*(.+?)\*/g;
-    let m;
-    while ((m = re.exec(text)) !== null) quotes.push({ quote: m[1], speaker: m[2] });
-    res.json(quotes);
+    if (!cachedQuotes) {
+      const text   = fs.readFileSync(path.join(__dirname, '../galactic_wisdom.md'), 'utf8');
+      const quotes = [];
+      const re     = /\*\*"(.+?)"\*\* — \*(.+?)\*/g;
+      let m;
+      while ((m = re.exec(text)) !== null) quotes.push({ quote: m[1], speaker: m[2] });
+      cachedQuotes = quotes;
+    }
+    res.json(cachedQuotes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
