@@ -63,7 +63,7 @@
           <input type="date" id="plan-date-picker" class="plan-date-picker hidden" />
           <button id="plan-regen-btn" class="plan-regen-btn" title="Regenerate today's plan">Regenerate</button>
           <button id="plan-return-btn" class="plan-return-btn hidden">Return to today</button>
-          <button id="plan-date-btn" class="plan-date-btn" title="Preview Plan for a different date">📅</button>
+          <button id="plan-date-btn" class="plan-date-btn" title="Preview Plan for a different date" aria-label="Preview Plan for a different date">📅</button>
           <span id="topbar-date" class="topbar-date"></span>
           <span id="alert-pill" class="alert-pill"></span>
         </div>
@@ -191,11 +191,11 @@
 
         <div class="eod-section-label">How was today?</div>
         <div id="eod-emoji-row" class="eod-emoji-row">
-          <button class="eod-emoji" data-rating="1">😞</button>
-          <button class="eod-emoji" data-rating="2">😐</button>
-          <button class="eod-emoji" data-rating="3">🙂</button>
-          <button class="eod-emoji" data-rating="4">😊</button>
-          <button class="eod-emoji" data-rating="5">🚀</button>
+          <button class="eod-emoji" data-rating="1" aria-label="Very Bad">😞</button>
+          <button class="eod-emoji" data-rating="2" aria-label="Bad">😐</button>
+          <button class="eod-emoji" data-rating="3" aria-label="Okay">🙂</button>
+          <button class="eod-emoji" data-rating="4" aria-label="Good">😊</button>
+          <button class="eod-emoji" data-rating="5" aria-label="Excellent">🚀</button>
         </div>
 
         <textarea id="eod-journal" class="eod-journal" placeholder="Anything else the AI should know?"></textarea>
