@@ -21,6 +21,7 @@ const { checkAndRunDailyReset,
 const { generateDayPlan }                      = require('./planner');
 const calendarManager                          = require('./calendar-manager');
 const tasksManager                             = require('./tasks-manager');
+const cache                                  = require('./cache');
 const emitter                                  = require('./emitter');
 const { cleanNameLabels, cleanTypedNames, normalizeNameEntry, setNameEntry } = require('./names-registry');
 
@@ -32,6 +33,18 @@ const RULES_PATH = path.join(CONTEXT_DIR, 'rules.md');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
+
+
+// ⚡ Bolt: Cache context files to prevent synchronous file read on every request
+function readContextFileCached(filePath) {
+  let content = cache.get(filePath);
+  if (content == null) {
+    content = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+    // Use an arbitrarily long TTL since chokidar invalidates it on change
+    cache.set(filePath, content, 3600);
+  }
+  return content;
+}
 
 const streamClients = new Set();
 
@@ -323,8 +336,8 @@ async function applyEditsWithVerification(naturalText, deepseekSourcePrompt) {
   let qwenInput = naturalText;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const planning = fs.existsSync(PLANNING_PATH) ? fs.readFileSync(PLANNING_PATH, 'utf8') : '';
-    const rules    = fs.existsSync(RULES_PATH)    ? fs.readFileSync(RULES_PATH,    'utf8') : '';
+    const planning = readContextFileCached(PLANNING_PATH);
+    const rules    = readContextFileCached(RULES_PATH);
 
     let parsed = {};
     try {
@@ -400,8 +413,8 @@ If no existing line matches and the intent is to add something new, write: meant
 
 async function runEditorReflection({ reason, summary, plan, projects, tasks, events }) {
   const { generate, OLLAMA_MODEL } = require('./ollama');
-  const planning = fs.existsSync(PLANNING_PATH) ? fs.readFileSync(PLANNING_PATH, 'utf8') : '';
-  const rules    = fs.existsSync(RULES_PATH)    ? fs.readFileSync(RULES_PATH,    'utf8') : '';
+  const planning = readContextFileCached(PLANNING_PATH);
+  const rules    = readContextFileCached(RULES_PATH);
 
   const sourcePrompt = `A user edited today's plan.
 
@@ -872,8 +885,8 @@ app.post('/api/message/stream', async (req, res) => {
     return res.end();
   }
 
-  const planning = fs.existsSync(PLANNING_PATH) ? fs.readFileSync(PLANNING_PATH, 'utf8') : '';
-  const rules    = fs.existsSync(RULES_PATH)    ? fs.readFileSync(RULES_PATH,    'utf8') : '';
+  const planning = readContextFileCached(PLANNING_PATH);
+  const rules    = readContextFileCached(RULES_PATH);
 
   const projects = readProjects().projects || [];
   const allTasks = tasksManager.loadAllTasks();
@@ -950,6 +963,7 @@ function startFileWatcher() {
   });
 
   watcher.on('change', (filePath) => {
+    cache.invalidate(filePath);
     const rel = path.relative(CONTEXT_DIR, filePath);
     console.log(`[watcher] Changed: ${rel}`);
     broadcastEvent({ type: 'context_changed', file: rel, ts: Date.now() });

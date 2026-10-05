@@ -1,3 +1,3 @@
-## 2024-05-15 - Performance Optimization Journal
-**Learning:** Found an endpoint (`/api/quotes`) that was synchronously reading and regex parsing a file on every single request. Caching this result at the module level significantly decreased response times.
-**Action:** Always look for static file reads inside request handlers and hoist/cache them when the content doesn't change during the process lifecycle.
+## 2024-10-04 - Cache Invalidation Tied to Chokidar File Watcher
+**Learning:** Zora heavily relies on file paths in `context/` such as `planning.md` and `rules.md` which are read synchronously via `fs.readFileSync` for almost every message. There is already a Chokidar file watcher set up in `backend/server.js` (`startFileWatcher()`) that monitors the `context/` directory for changes.
+**Action:** Any caching of these files MUST be invalidated based on the Chokidar watcher events. The watcher emits a `context_changed` event via `broadcastEvent`. I should use `emitter` to invalidate an in-memory cache of `fs.readFileSync` results for `context/` files to speed up operations and avoid synchronous IO delays without causing regressions.
