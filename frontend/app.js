@@ -297,16 +297,36 @@ function replacePlanId(plan, fromId, toId) {
   plan.events = (plan.events || []).map((item) => item.id === fromId ? { ...item, id: toId } : item);
 }
 
+// ⚡ Bolt: Bulk replace IDs to prevent O(n²) nested array scans during editor save
+function replacePlanIds(plan, idMap) {
+  if (!plan || !idMap || idMap.size === 0) return;
+  for (const blockName of ['morning', 'afternoon', 'evening']) {
+    plan.blocks[blockName] = (plan.blocks[blockName] || []).map((item) =>
+      idMap.has(item.id) ? { ...item, id: idMap.get(item.id) } : item
+    );
+  }
+  plan.tasks = (plan.tasks || []).map((item) =>
+    idMap.has(item.id) ? { ...item, id: idMap.get(item.id) } : item
+  );
+  plan.events = (plan.events || []).map((item) =>
+    idMap.has(item.id) ? { ...item, id: idMap.get(item.id) } : item
+  );
+}
+
 function finalizeEditorIds(editor) {
+  const idMap = new Map();
   for (const collectionName of ['projects', 'tasks', 'events']) {
     for (const item of editor[collectionName] || []) {
       if (!item.isNew) continue;
       const fallback = collectionName === 'projects' ? 'project' : collectionName === 'tasks' ? 'task' : 'event';
       const nextId = slugifyId(item.name || item.desc, fallback);
-      replacePlanId(editor.plan, item.id, nextId);
+      idMap.set(item.id, nextId);
       item.id = nextId;
       item.isNew = false;
     }
+  }
+  if (idMap.size > 0) {
+    replacePlanIds(editor.plan, idMap);
   }
 }
 
