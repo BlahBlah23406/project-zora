@@ -12,6 +12,7 @@ const calendarManager = require('./calendar-manager');
 const tasksManager    = require('./tasks-manager');
 const { readProjects } = require('./task-loader');
 const { getNameType }  = require('./names-registry');
+const cache = require('./cache');
 
 const CONTEXT_DIR = path.join(__dirname, '../context');
 const DEEPSEEK    = OLLAMA_MODEL;
@@ -21,7 +22,7 @@ const BULLET_SYSTEM = 'You are a planning assistant. Output only short bullet po
 
 function readContextFile(filename) {
   const p = path.join(CONTEXT_DIR, filename);
-  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+  return cache.readCached(p);
 }
 
 function today() {
