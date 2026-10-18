@@ -7,6 +7,7 @@ const { readMemoryLog, writeMemoryLog, appendMemoryEntry, getToday } = require('
 const { loadAllTasks }    = require('./task-loader');
 const { buildMasterContext } = require('./context-builder');
 const { generate, OLLAMA_MODEL } = require('./ollama');
+const cache = require('./cache');
 
 const CONTEXT_DIR   = path.join(__dirname, '../context');
 const PROJECTS_PATH = path.join(CONTEXT_DIR, 'projects.json');
@@ -228,7 +229,7 @@ Be specific and honest. Use exact YYYY-MM-DD dates. Under 400 tokens. Output onl
 async function monthlyPlanningUpdate() {
   console.log('[memory-manager] Running monthly planning update...');
 
-  const planningContent = fs.existsSync(PLANNING_PATH) ? fs.readFileSync(PLANNING_PATH, 'utf8') : '';
+  const planningContent = cache.readCached(PLANNING_PATH);
   const weeklyEntries   = planningContent.split(/(?=## Week of )/).slice(-4).join('\n');
   const monthName       = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -574,7 +575,7 @@ const LTP_CONDENSE_THRESHOLD = 5500;
 
 async function condensePlanningIfNeeded() {
   if (!fs.existsSync(PLANNING_PATH)) return;
-  const content = fs.readFileSync(PLANNING_PATH, 'utf8');
+  const content = cache.readCached(PLANNING_PATH);
   if (content.length <= LTP_CONDENSE_THRESHOLD) return;
 
   console.log(`[memory-manager] planning.md is ${content.length} chars — condensing...`);

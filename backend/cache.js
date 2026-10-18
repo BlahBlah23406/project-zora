@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 const _store = {};
 
 function set(key, value, ttlSeconds) {
@@ -22,4 +24,14 @@ function flush() {
   for (const key of Object.keys(_store)) delete _store[key];
 }
 
-module.exports = { set, get, invalidate, flush };
+function readCached(filePath) {
+  let content = get(filePath);
+  if (content == null) {
+    content = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+    // Use an arbitrarily long TTL since chokidar invalidates it on change
+    set(filePath, content, 3600);
+  }
+  return content;
+}
+
+module.exports = { set, get, invalidate, flush, readCached };
