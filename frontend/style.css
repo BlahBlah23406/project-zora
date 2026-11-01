@@ -778,6 +778,14 @@ body {
   color: var(--green);
   margin-top: 1px;
   transition: background 0.15s, border-color 0.15s;
+  background: transparent;
+  padding: 0;
+  outline: none;
+}
+
+.task-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .task-checkbox.checked {
