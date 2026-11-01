@@ -1206,9 +1206,9 @@ function buildTaskItem(task) {
     ? task.scheduledTime : '';
 
   div.innerHTML = `
-    <div class="task-checkbox${task.completed ? ' checked' : ''}" data-id="${escAttr(task.id)}">
+    <button type="button" role="checkbox" aria-checked="${task.completed ? 'true' : 'false'}" aria-label="Toggle task completion" class="task-checkbox${task.completed ? ' checked' : ''}" data-id="${escAttr(task.id)}">
       ${task.completed ? '✓' : ''}
-    </div>
+    </button>
     <div class="task-content">
       <div class="task-text${task.completed ? ' done' : ''}">${escHtml(text)}</div>
       ${timeLabel ? `<div class="task-time">${timeLabel}</div>` : ''}
@@ -1399,7 +1399,11 @@ const UIUpdater = {
     if (el) {
       const cb = $('.task-checkbox', el);
       const text = $('.task-text', el);
-      if (cb) { cb.classList.add('checked'); cb.textContent = '✓'; }
+      if (cb) {
+        cb.classList.add('checked');
+        cb.textContent = '✓';
+        cb.setAttribute('aria-checked', 'true');
+      }
       if (text) text.classList.add('done');
     }
   },

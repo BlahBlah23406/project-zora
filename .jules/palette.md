@@ -1,0 +1,3 @@
+## 2024-05-24 - Interactive custom elements require native button semantics
+**Learning:** In Zora, interactive custom checkboxes (`.task-checkbox`) were originally built using `<div>` elements. This made them inaccessible via keyboard because they didn't receive focus, and screen readers lacked context about what the element did.
+**Action:** Use native `<button>` elements for custom interactive controls instead of `<div>`s to ensure native keyboard accessibility and focusability, and include `role` and `aria-` attributes (e.g., `role="checkbox"`, `aria-checked="true"`) to communicate their state clearly to assistive technologies.
